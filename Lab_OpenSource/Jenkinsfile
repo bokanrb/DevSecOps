@@ -1,0 +1,81 @@
+pipeline{
+  agent any
+  environment {
+    APP = "dexter"
+    PORT = "8888"
+  }
+
+//Estágios do Jenkinsfile
+  stages{
+    stage('Code Repository'){
+      steps {
+        git url: 'https://github.com/4linux/Dexter-Intranet'
+      }
+    }
+    stage('SAST-Sonarqube'){
+      environment {
+        scantool = tool 'sonar-scanner'
+      }
+      steps{
+        withSonarQubeEnv('sonarqube'){
+          sh "${scantool}/bin/sonar-scanner -Dsonar.projectKey=$APP -Dsonar.sources=${WORKSPACE}/intranet/ -Dsonar.projectVersion=${BUILD_NUMBER}"
+        }
+        waitForQualityGate abortPipeline: true
+      }
+    }
+    stage('Build and Image Scan'){
+      agent {node 'automation'}
+      steps {
+        git url: 'https://github.com/4linux/Dexter-Intranet'
+        script {
+            docker.build "$APP:latest"
+        }
+        sh "claircli -T High -l 192.168.77.20 $APP:latest -f html"
+        sh '''
+        if [ ! "$(curl -s localhost:$PORT &> /dev/null)" ]; then
+            docker container run -d --name $APP -p $PORT:80 $APP:latest
+        fi
+        '''
+        publishHTML([
+          allowMissing: false,
+          alwaysLinkToLastBuild: true,
+          keepAll: true,
+          reportDir: '$WORKSPACE',
+          reportFiles: 'clair-$APP*.html',
+          reportName: 'CLAIR - IMAGE VULNERABILITY REPORT'
+          ])
+      }
+    }
+    stage('DAST-OWASP'){
+      environment{
+        ZAP_PATH = "/usr/share/owasp-zap"
+        ZAP_LOG_PATH = "$WORKSPACE"
+        ZAP_API_KEY = credentials('api-key-owasp')
+        APP_URL = "http://192.168.77.20:$PORT"
+      }
+      steps{
+        sh 'zap-cli-v2 start -o "-config api.key=$ZAP_API_KEY -config ajaxSpider.browserId=htmlunit -config connection.timeoutInSecs=1200 -dir ${WORKSPACE} -addoninstallall" '
+        sh 'zap-cli-v2 status'
+        sh 'zap-cli-v2 -v spider $APP_URL'
+        sh 'zap-cli-v2 -v ajax-spider $APP_URL'
+        sh 'zap-cli-v2 -v active-scan -r $APP_URL'
+        sh 'zap-cli-v2 report -o reports/vuln-report-${BUILD_NUMBER}.html -f html'
+        sh 'zap-cli-v2 shutdown'
+
+        publishHTML([
+          allowMissing: false,
+          alwaysLinkToLastBuild: true,
+          keepAll: true,
+          reportDir: 'reports/',
+          reportFiles: 'vuln-report-${BUILD_NUMBER}.html',
+          reportName: 'OWASP-ZAP - VULNERABILITY REPORT'
+          ])
+      }
+    }
+  } 
+  post {
+    always {chuckNorris()}
+    success {echo "Pipeline ta top! vamo que vamo"}
+    failure {echo "Fez merda hein! Arruma ai"}
+  }
+}
