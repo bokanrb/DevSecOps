@@ -4,7 +4,7 @@ name: Docker PHP Demo
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
           ssh user@self-hosted-runner 'docker pull php-demo && docker run -d -p 8080:80 php-demo'
 
   test:
-    runs-on: ubuntu-latest  # Alterado para Linux
+    runs-on: self-hosted  # Alterado para Linux
     permissions:
       id-token: 'write'
       contents: 'read'
