@@ -22,9 +22,8 @@ jobs:
       - name: Construir imagem Docker
         run: docker build -t php-demo .
 
-      - name: Executar container Docker no runner self-hosted
-        run: |
-          ssh user@self-hosted-runner 'docker pull php-demo && docker run -d -p 8080:80 php-demo'
+      - name: Executar container Docker
+        run: docker run -d -p 8080:80 php-demo
 
   test:
     runs-on: self-hosted  # Alterado para Linux
