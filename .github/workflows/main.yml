@@ -2,7 +2,7 @@ on: [push]
 
 jobs:
 
-name: Docker PHP Demo
+  name: Docker PHP Demo
   deploy:
     runs-on: ubuntu-latest
     steps:
