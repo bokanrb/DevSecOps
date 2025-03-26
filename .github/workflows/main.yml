@@ -2,8 +2,9 @@ on: [push]
 
 jobs:
 
+name: Docker PHP Demo
   deploy:
-    runs-on: ubuntu-latest  # Alterado para Linux
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -11,14 +12,18 @@ jobs:
       - name: Configurar Docker
         run: |
           echo "Criando Dockerfile..."
-          echo "FROM alpine:latest" > Dockerfile
-          echo "CMD echo 'Hello, World from Docker!'" >> Dockerfile
+          echo "FROM php:apache" > Dockerfile
+          echo "COPY index.php /var/www/html/" >> Dockerfile
+
+      - name: Criar arquivo index.php
+        run: |
+          echo "<?php echo 'Hello, World from PHP!'; ?>" > index.php
 
       - name: Construir imagem Docker
-        run: docker build -t hello-world .
+        run: docker build -t php-demo .
 
       - name: Executar container Docker
-        run: docker run --rm hello-world
+        run: docker run -d -p 8080:80 php-demo
 
   test:
     runs-on: ubuntu-latest  # Alterado para Linux
