@@ -1,0 +1,37 @@
+on: [push]
+
+jobs:
+
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Docker
+        run: |
+          echo "Criando Dockerfile..."
+          echo "FROM alpine:latest" > Dockerfile
+          echo "CMD echo 'Hello, World from Docker!'" >> Dockerfile
+
+      - name: Construir imagem Docker
+        run: docker build -t hello-world .
+
+      - name: Executar container Docker
+        run: docker run --rm hello-world
+
+  test:
+    # ...
+    permissions:
+      id-token: 'write'
+      contents: 'read'
+    steps:
+      # ...
+      - name: Import Secrets using CyberArk Conjur Secret Fetcher Action
+        uses: cyberark/conjur-action@v2.0.5
+        with:
+          url: ${{ secrets.CONJUR_URL }}
+          account: cyberarkdemo
+          authn_id: ${{ secrets.CONJUR_AUTHN_ID }}
+          secrets: db/sqlusername|sql_username;db/sql_password
+      
