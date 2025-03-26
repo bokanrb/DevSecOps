@@ -3,7 +3,7 @@ on: [push]
 jobs:
 
   deploy:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest  # Alterado para Linux
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
@@ -21,13 +21,11 @@ jobs:
         run: docker run --rm hello-world
 
   test:
-    # ...
-    runs-on: macos-latest
+    runs-on: ubuntu-latest  # Alterado para Linux
     permissions:
       id-token: 'write'
       contents: 'read'
     steps:
-      # ...
       - name: Import Secrets using CyberArk Conjur Secret Fetcher Action
         uses: cyberark/conjur-action@v2.0.5
         with:
@@ -35,4 +33,3 @@ jobs:
           account: cyberarkdemo
           authn_id: ${{ secrets.CONJUR_AUTHN_ID }}
           secrets: db/sqlusername|sql_username;db/sql_password
-      
